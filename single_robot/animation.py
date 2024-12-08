@@ -120,9 +120,9 @@ def animate_robot_progress(
             map_size = frontier_maps[0].shape
             ax.set_xlim(0, map_size[0])  # width of the map (rows)
             ax.set_ylim(0, map_size[1])  # height of the map (cols)
-        images[0] = 1 - frontier_maps[frame]  # Frontier map
-        images[1] = 1 - robot_obstacle_maps[frame]  # Robot obstacle map
-        images[2] = 1 - ground_truth_obstacle_map  # Ground truth map
+        images[0] = 1 - frontier_maps[frame].T  # Frontier map
+        images[1] = 1 - robot_obstacle_maps[frame].T  # Robot obstacle map
+        images[2] = 1 - ground_truth_obstacle_map.T  # Ground truth map
 
         # Get robot state for this frame
         robot_x, robot_y = robot_positions[frame]
