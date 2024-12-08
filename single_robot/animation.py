@@ -106,7 +106,7 @@ def animate_robot_progress(
     # Initialize the maps and robot position plots
     images = []
     for ax, title in zip(axes, titles):
-        img = ax.imshow(np.zeros_like(frontier_maps[0].cpu().T), cmap="gray", origin="lower")
+        img = ax.imshow(np.zeros_like(frontier_maps[0].T.cpu()), cmap="gray", origin="lower")
         images.append(img)
         ax.set_title(title)
         ax.set_xlabel("X")
@@ -120,9 +120,9 @@ def animate_robot_progress(
             map_size = frontier_maps[0].shape
             ax.set_xlim(0, map_size[0])  # width of the map (rows)
             ax.set_ylim(0, map_size[1])  # height of the map (cols)
-        images[0] = 1 - frontier_maps[frame].T  # Frontier map
-        images[1] = 1 - robot_obstacle_maps[frame].T  # Robot obstacle map
-        images[2] = 1 - ground_truth_obstacle_map.T  # Ground truth map
+        images[0] = 1 - frontier_maps[frame].T.cpu()  # Frontier map
+        images[1] = 1 - robot_obstacle_maps[frame].T.cpu()  # Robot obstacle map
+        images[2] = 1 - ground_truth_obstacle_map.T.cpu()  # Ground truth map
 
         # Get robot state for this frame
         robot_x, robot_y = robot_positions[frame]
