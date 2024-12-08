@@ -1,5 +1,5 @@
 import torch
-from hyperparam import ROOM_SPLIT
+from hyperparam import ROOM_SPLIT, MAX_DETECTION_DIST
 from model import device
 
 
@@ -57,7 +57,7 @@ def generate_feature_vector(
     mask_robot_position = (dx == 0) & (dy == 0)
 
     # Mask out-of-bound areas
-    mask_valid = distances > 0
+    mask_valid = (distances > 0) & (distances < MAX_DETECTION_DIST)
 
     # Combine valid mask
     valid_mask = mask_valid & ~mask_robot_position
