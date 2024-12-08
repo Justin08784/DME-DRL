@@ -91,8 +91,8 @@ for episode in range(MAX_EPISODES):
 
         # Generate features and move to device
         feature_tensor = generate_feature_vector(
-            robot_obstacle_map,
             frontier_map,
+            robot_obstacle_map,
             current_location,
             current_direction,
             0.5,
