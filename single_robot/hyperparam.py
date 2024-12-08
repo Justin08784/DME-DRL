@@ -5,7 +5,7 @@ HIDDEN_DIM = 1024
 OUTPUT_DIM = 2
 
 MAX_LINEAR_VELOCITY = 3
-MAX_ANGULAR_VELOCITY = 0.1
+MAX_ANGULAR_VELOCITY = np.pi/6 # prev: 0.1
 
 # Parameters
 MAX_EPISODES = 500  # Number of episodes

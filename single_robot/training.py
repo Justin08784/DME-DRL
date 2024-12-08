@@ -24,6 +24,7 @@ from dataset import load_processed_dataset, data_path
 from reward import evaluate_model_performance
 from animation import animate_robot_progress
 from datetime import datetime
+import csv
 
 # Initialize model and optimizer
 model = model.to(device)  # Move model to device
@@ -41,6 +42,7 @@ def generate_random_free_location(ground_truth_obstacle_map):
     Returns:
         tuple: (x, y) coordinates of the random free location.
     """
+
     # Find free space indices
     free_space_indices = torch.nonzero(ground_truth_obstacle_map == 0, as_tuple=False)
 
@@ -70,6 +72,13 @@ dataset = load_processed_dataset(0, TRAIN_DATASET_SIZE)
 train_id = "TRAIN" + str(datetime.now()).replace(" ", ".")
 reward_history = []
 
+if not (data_path / train_id).exists():
+    makedirs(data_path / train_id)
+f = open(data_path / train_id / "interm_results.csv", "a+", newline="")
+headers = ["reward", "free_space_discovered", "actor_loss", "critic_loss"]
+writer = csv.writer(f)
+writer.writerow(headers)
+
 for episode in range(MAX_EPISODES):
     ground_truth_obstacle_map, frontier_map, robot_obstacle_map = create_environment(
         dataset, episode % TRAIN_DATASET_SIZE
@@ -80,6 +89,8 @@ for episode in range(MAX_EPISODES):
     total_reward = 0
     old_performance = 0
     locations, directions, frontier_maps, robot_obstacle_maps = [], [], [], []
+    total_actor_loss = 0
+    total_critic_loss = 0
 
     for step in range(MAX_STEPS):
         # Logging for visualization
@@ -145,10 +156,12 @@ for episode in range(MAX_EPISODES):
         _, next_critic_value = model(next_feature_tensor)
         td_target = reward + GAMMA * next_critic_value
         critic_loss = F.mse_loss(critic_value, td_target.detach())
+        total_critic_loss += critic_loss
 
         # Actor loss
         advantage = td_target - critic_value
         actor_loss = -torch.mean(advantage.detach() * torch.sum(actor_output))
+        total_actor_loss += actor_loss
 
         # Total loss
         loss = actor_loss + critic_loss
@@ -167,11 +180,10 @@ for episode in range(MAX_EPISODES):
     print(
         f"Episode {episode + 1}/{MAX_EPISODES}, Total Reward: {total_reward:.2f}, Free Space Discovered: {old_performance:.2f}%"
     )
+    writer.writerow([total_reward, old_performance, total_actor_loss.item(), total_critic_loss.item()])
 
     # Save animations periodically
     if episode % 20 == 0:
-        if not (data_path / train_id).exists():
-            makedirs(data_path / train_id)
         animate_robot_progress(
             frontier_maps,
             robot_obstacle_maps,
