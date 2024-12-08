@@ -3,6 +3,79 @@ import matplotlib.animation as animation
 import numpy as np
 
 
+def viz_binarr(arr):
+    '''
+    arr is indexed like so: rr[x_ind, y_ind]
+    '''
+    fig, ax = plt.subplots()  # Create a figure and axes
+    cax = ax.imshow(arr.T, cmap="gray", origin="lower")  # Display the array as a heatmap
+    plt.xlabel("x-axis")
+    plt.ylabel("y-axis")
+    return fig
+
+def viz_one(
+    frontier_map,
+    robot_obstacle_map,
+    ground_truth_obstacle_map,
+    robot_position,
+    robot_direction,
+    max_detection_dist,
+    max_detection_angle,
+    save_path=None,
+):
+    # Create a figure with subplots
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    titles = ["Frontier Map", "Robot Obstacle Map", "Ground Truth Obstacle Map"]
+
+    # Initialize the maps and robot position plots
+    images = []
+    for ax, title in zip(axes, titles):
+        img = ax.imshow(np.zeros_like(frontier_map.cpu()), cmap="gray", origin="lower")
+        ax.set_title(title)
+        ax.set_xlabel("x-axis")
+        ax.set_ylabel("y-axis")
+        images.append(img)
+
+        map_size = frontier_map.shape
+        ax.set_xlim(0, map_size[0])  # width of the map (rows)
+        ax.set_ylim(0, map_size[1])  # height of the map (columns)
+
+    images[0] = 1 - frontier_map.T
+    images[1] = 1 - robot_obstacle_map.T
+    images[2] = 1 - ground_truth_obstacle_map.T
+
+    # Get robot state for this frame
+    robot_x, robot_y = robot_position
+    robot_direction = robot_direction
+
+    # Add robot position and detection field of view
+    for idx, ax in enumerate(axes):
+        ax.imshow(images[idx], cmap="gray", origin="lower")
+        # ax.plot(
+        #     robot_x, robot_y, "ro", markersize=8, label="Robot Position", zorder=5
+        # )
+        ax.plot(
+            robot_x, robot_y, "ro", markersize=8, zorder=5
+        )
+
+        # Detection field of view
+        angles = np.linspace(
+            robot_direction - max_detection_angle / 2,
+            robot_direction + max_detection_angle / 2,
+            100,
+        )
+        detection_x = robot_x + max_detection_dist * np.cos(angles)
+        detection_y = robot_y + max_detection_dist * np.sin(angles)
+
+        # Draw detection arc
+        ax.plot(detection_x, detection_y, "r--")
+
+        # Draw detection radius
+        ax.plot([robot_x, detection_x[0]], [robot_y, detection_y[0]], "r--")
+        ax.plot([robot_x, detection_x[-1]], [robot_y, detection_y[-1]], "r--")
+
+    return fig
+
 def animate_robot_progress(
     frontier_maps,
     robot_obstacle_maps,
