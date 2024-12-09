@@ -2,6 +2,25 @@ import torch
 from hyperparam import ROOM_SPLIT, MAX_DETECTION_DIST
 from model import device
 
+start_time = 0
+time_id = ""
+import time
+enable_debug = False
+def time_start(id):
+    if not enable_debug:
+        return
+    global start_time, time_id
+    start_time = time.time()
+    time_id = id
+
+def time_stop(id):
+    if not enable_debug:
+        return
+    global start_time, time_id
+    assert(time_id == id)
+    print(f"{id} runtime: {time.time() - start_time}")
+
+
 
 def generate_feature_vector(
     frontier_map,
@@ -27,23 +46,34 @@ def generate_feature_vector(
     Returns:
         torch.Tensor: Flattened feature vector for the ROOM_SPLIT sections.
     """
-    # Move inputs to device
-    frontier_map = frontier_map.to(device)
-    obstacle_map = obstacle_map.to(device)
-
+    # print("\n>>")
+    time_start("move")
     # Get map dimensions
     map_size_x, map_size_y = frontier_map.shape
 
     # Robot position
     robot_x, robot_y = robot_position
+    x_start = int(max(robot_x - MAX_DETECTION_DIST, 0))
+    y_start = int(max(robot_y - MAX_DETECTION_DIST, 0))
+    x_end = int(min(robot_x + MAX_DETECTION_DIST + 1, map_size_x))
+    y_end = int(min(robot_y + MAX_DETECTION_DIST + 1, map_size_y))
 
+    # Move inputs to device
+    frontier_map = frontier_map.to(device)[x_start:x_end, y_start:y_end]
+    obstacle_map = obstacle_map.to(device)[x_start:x_end, y_start:y_end]
+    print(f"indices: x {x_start}:{x_end}, y {y_start}:{y_end}")
+    time_stop("move")
+
+    time_start("mesh")
     # Create grid coordinates
     x_coords, y_coords = torch.meshgrid(
-        torch.arange(map_size_x, device=device),
-        torch.arange(map_size_y, device=device),
+        torch.arange(start=x_start, end=x_end, device=device),
+        torch.arange(start=y_start, end=y_end, device=device),
         indexing="ij",
     )
+    time_stop("mesh")
 
+    time_start("calcs")
     # Calculate relative positions to the robot
     dx = x_coords - robot_x
     dy = y_coords - robot_y
@@ -52,7 +82,9 @@ def generate_feature_vector(
     # Calculate angles relative to the robot
     angles = torch.atan2(dy, dx)
     angles[angles < 0] += 2 * torch.pi  # Normalize to [0, 2π)
+    time_stop("calcs")
 
+    time_start("masks")
     # Mask for the robot's current position (avoid self-reference)
     mask_robot_position = (dx == 0) & (dy == 0)
 
@@ -61,17 +93,23 @@ def generate_feature_vector(
 
     # Combine valid mask
     valid_mask = mask_valid & ~mask_robot_position
+    time_stop("masks")
 
+    time_start("angles")
     # Angular increments for each section
     angle_increment = 2 * torch.pi / ROOM_SPLIT
     start_angles = torch.arange(ROOM_SPLIT, device=device) * angle_increment
     end_angles = start_angles + angle_increment
+    time_stop("angles")
 
+    time_start("prealloc")
     # Preallocate metrics
     total_area = torch.zeros(ROOM_SPLIT, device=device)
     unexplored_area = torch.zeros(ROOM_SPLIT, device=device)
     nearest_obstacle_distance = torch.full((ROOM_SPLIT,), float("inf"), device=device)
+    time_stop("prealloc")
 
+    time_start("compute metrics")
     # Compute metrics for each angular section
     for section, (start_angle, end_angle) in enumerate(zip(start_angles, end_angles)):
         angle_mask = (angles >= start_angle) & (angles < end_angle)
@@ -91,7 +129,9 @@ def generate_feature_vector(
         ]
         if obstacle_distances.numel() > 0:
             nearest_obstacle_distance[section] = obstacle_distances.min()
+    time_stop("compute metrics")
 
+    time_start("end")
     # Handle sections with no obstacles
     nearest_obstacle_distance[nearest_obstacle_distance == float("inf")] = (
         0.1  # Add epsilon
@@ -113,5 +153,6 @@ def generate_feature_vector(
             torch.tensor([robot_direction], device=device),
         ]
     )
+    time_stop("end")
 
     return feature_vector
