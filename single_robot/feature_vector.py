@@ -59,8 +59,8 @@ def generate_feature_vector(
     y_end = int(min(robot_y + MAX_DETECTION_DIST + 1, map_size_y))
 
     # Move inputs to device
-    frontier_map = frontier_map.to(device)[x_start:x_end, y_start:y_end]
-    obstacle_map = obstacle_map.to(device)[x_start:x_end, y_start:y_end]
+    frontier_map = frontier_map[x_start:x_end, y_start:y_end].to(device)
+    obstacle_map = obstacle_map[x_start:x_end, y_start:y_end].to(device)
     print(f"indices: x {x_start}:{x_end}, y {y_start}:{y_end}")
     time_stop("move")
 
