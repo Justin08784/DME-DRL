@@ -61,7 +61,7 @@ def generate_feature_vector(
     # Move inputs to device
     frontier_map = frontier_map[x_start:x_end, y_start:y_end].to(device)
     obstacle_map = obstacle_map[x_start:x_end, y_start:y_end].to(device)
-    print(f"indices: x {x_start}:{x_end}, y {y_start}:{y_end}")
+    # print(f"indices: x {x_start}:{x_end}, y {y_start}:{y_end}")
     time_stop("move")
 
     time_start("mesh")

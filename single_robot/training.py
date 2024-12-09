@@ -33,7 +33,7 @@ optimizer = optim.Adam(model.parameters(), lr=LR)
 start_time = 0
 time_id = ""
 import time
-enable_debug = True
+enable_debug = False
 def time_start(id):
     if not enable_debug:
         return
@@ -208,7 +208,6 @@ for episode in range(MAX_EPISODES):
         loss.backward()
         optimizer.step()
         time_stop("backprop")
-        print("")
 
         # Update state
         if collision:
